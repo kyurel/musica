@@ -13,7 +13,8 @@ Current milestone: **1a, Library v1 basics.**
 | `docs/` | Scope and decisions |
 | `supabase/migrations/` | Database schema, row-level security, job queue (SQL, in order) |
 | `supabase/tests/` | SQL tests for the migrations |
-| `worker/` | Python analysis worker that runs on the Macs |
+| `worker/` | Python analysis worker that runs on the Macs (`musica-worker add` puts files in the library) |
+| `apps/web/` | Next.js web app: login, library, player, System status |
 
 ## Database
 

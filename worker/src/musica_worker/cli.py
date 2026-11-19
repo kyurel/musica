@@ -23,6 +23,10 @@ def main(argv: list[str] | None = None) -> None:
     sub.add_parser("login", help="sign in with GitHub and keep the token in the Keychain")
     sub.add_parser("logout", help="forget the stored token")
     sub.add_parser("run", help="claim and run jobs until stopped")
+    add = sub.add_parser("add", help="add audio files or folders to the library and queue analysis")
+    add.add_argument("paths", nargs="+", type=Path)
+    add.add_argument("--source", default="reference",
+                     help="ours, reference, commercial, promo or sample_pack (default: reference)")
     one = sub.add_parser("analyse", help="analyse one local file and print the results (no database)")
     one.add_argument("file", type=Path)
     one.add_argument("--bpm-range", help="genre BPM range, e.g. 138-150")
@@ -52,6 +56,23 @@ def main(argv: list[str] | None = None) -> None:
         return
     if args.cmd == "logout":
         session.logout(runner)
+        return
+
+    if args.cmd == "add":
+        from .ingest import AUDIO_SUFFIXES, add_to_library, prepare
+
+        client = session.signed_in_client(url, anon, runner)
+        root = Path(_env("MUSICA_LIBRARY_ROOT")).expanduser()
+        files = []
+        for p in args.paths:
+            p = p.expanduser()
+            files += sorted(f for f in p.rglob("*") if f.suffix.lower() in AUDIO_SUFFIXES) if p.is_dir() else [p]
+        for f in files:
+            try:
+                version_id, created = add_to_library(client, prepare(f, root), args.source)
+                print(f"{'added' if created else 'already in library'}: {f.name}")
+            except Exception as e:  # keep going through a folder
+                print(f"skipped {f.name}: {e}")
         return
 
     from .jobs import Worker
