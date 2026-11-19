@@ -7,6 +7,7 @@ import { NotMember } from "@/components/not-member";
 import { ALL_KEYS, notation } from "@/lib/keys";
 import { PAGE_SIZE, parseFilters, playable, searchTracks } from "@/lib/library";
 import { PlayButton, PlayerProvider } from "@/components/player";
+import { ExportButton } from "@/components/export-button";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -28,8 +29,9 @@ export default async function LibraryPage({
   ]);
   const page = f.page ?? 1;
   const pages = Math.max(1, Math.ceil(count / PAGE_SIZE));
+  const query = new URLSearchParams(Object.entries(sp).filter(([, v]) => typeof v === "string") as [string, string][]);
   const pageLink = (p: number) => {
-    const q = new URLSearchParams(Object.entries(sp).filter(([, v]) => typeof v === "string") as [string, string][]);
+    const q = new URLSearchParams(query);
     q.set("page", String(p));
     return `/?${q}`;
   };
@@ -39,7 +41,10 @@ export default async function LibraryPage({
     <div className="space-y-4">
       <div className="flex items-baseline justify-between">
         <h1 className="text-xl font-semibold">Library</h1>
-        <span className="text-sm text-muted-foreground">{count} tracks</span>
+        <div className="flex items-center gap-4">
+          <span className="text-sm text-muted-foreground">{count} tracks</span>
+          {count > 0 && <ExportButton query={query.toString()} />}
+        </div>
       </div>
 
       <form className="flex flex-wrap items-center gap-2" method="get">

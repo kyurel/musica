@@ -30,6 +30,34 @@ def main(argv: list[str] | None = None) -> None:
     one = sub.add_parser("analyse", help="analyse one local file and print the results (no database)")
     one.add_argument("file", type=Path)
     one.add_argument("--bpm-range", help="genre BPM range, e.g. 138-150")
+
+    exp = sub.add_parser("export", help="write a playlist file (M3U8) for a crate or a filtered view")
+    exp.add_argument("format", choices=["m3u8"])
+    exp.add_argument("--crate", help="crate name (keeps crate order)")
+    exp.add_argument("--search", help="free text, like the library search box")
+    exp.add_argument("--genre", help="genre slug, e.g. hard-groove")
+    exp.add_argument("--bpm", help="BPM range, e.g. 138-150")
+    exp.add_argument("--key", help="Camelot key, e.g. 8A, or atonal")
+    exp.add_argument("--mixable", action="store_true", help="include harmonically compatible keys")
+    exp.add_argument("--source", help="ours, reference, commercial, promo or sample_pack")
+    exp.add_argument("--label", action="append", default=[], help="status label (repeatable)")
+    exp.add_argument("--review", action="store_true", help="only tracks that need review")
+    exp.add_argument("--name", help="playlist name (default: from the crate or filters)")
+    exp.add_argument("--out", type=Path, help="folder (default: MUSICA_EXPORT_DIR)")
+
+    bk = sub.add_parser("backup", help="back up the library database to this Mac")
+    bk_sub = bk.add_subparsers(dest="action", required=True)
+    bk_sub.add_parser("run", help="make a backup now and prune old ones")
+    sch = bk_sub.add_parser("schedule", help="run the backup every night (launchd)")
+    sch.add_argument("--at", default="03:30", help="time of day, HH:MM (default 03:30)")
+    sch.add_argument("--env-file", type=Path, default=Path("../.env"), help="settings file (default ../.env)")
+    bk_sub.add_parser("unschedule", help="stop the nightly backup")
+    bk_sub.add_parser("set-db-url", help="store the database URL in the Keychain (enables pg_dump)")
+    bk_sub.add_parser("forget-db-url", help="remove the database URL from the Keychain")
+    ver = bk_sub.add_parser("verify", help="check a snapshot file is complete and count its rows")
+    ver.add_argument("file", type=Path)
+    tosql = bk_sub.add_parser("to-sql", help="print SQL that restores a snapshot into a fresh database")
+    tosql.add_argument("file", type=Path)
     args = parser.parse_args(argv)
 
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -46,6 +74,10 @@ def main(argv: list[str] | None = None) -> None:
             print(json.dumps({"analyser": r.analyser, "source": r.source, "values": r.values}, default=str))
         return
 
+    if args.cmd == "backup" and args.action != "run":
+        _backup_offline(args)
+        return
+
     from . import session
 
     runner = _env("MUSICA_RUNNER_NAME")
@@ -56,6 +88,13 @@ def main(argv: list[str] | None = None) -> None:
         return
     if args.cmd == "logout":
         session.logout(runner)
+        return
+
+    if args.cmd == "export":
+        _export(args, session.signed_in_client(url, anon, runner))
+        return
+    if args.cmd == "backup":
+        _backup_run(session.signed_in_client(url, anon, runner), runner)
         return
 
     if args.cmd == "add":
@@ -89,6 +128,113 @@ def main(argv: list[str] | None = None) -> None:
 
     Worker(queue=SupabaseQueue(client), runner=runner, capabilities=caps,
            library_root=Path(_env("MUSICA_LIBRARY_ROOT")).expanduser(), uploader=uploader).run_forever()
+
+
+def _backup_dir() -> Path:
+    return Path(os.environ.get("MUSICA_BACKUP_DIR") or "~/Musica Backups").expanduser()
+
+
+def _export(args, client) -> None:
+    from .export import Selection, build_playlist, fetch_tracks, write_playlist
+
+    bpm_min = bpm_max = None
+    if args.bpm:
+        low, _, high = args.bpm.partition("-")
+        bpm_min, bpm_max = (float(low) if low else None), (float(high) if high else None)
+    sel = Selection(crate=args.crate, search=args.search, genre=args.genre, bpm_min=bpm_min,
+                    bpm_max=bpm_max, key=args.key, mixable=args.mixable, source=args.source,
+                    labels=args.label, review=args.review)
+    root = Path(_env("MUSICA_LIBRARY_ROOT")).expanduser()
+    out = (args.out or Path(os.environ.get("MUSICA_EXPORT_DIR") or "~/Music/Musica Exports")).expanduser()
+    try:
+        built = build_playlist(args.name or sel.default_name(), fetch_tracks(client, sel), root)
+    except ValueError as e:
+        sys.exit(str(e))
+    path = write_playlist(built.playlist, out, args.format)
+    print(f"{len(built.playlist.entries)} tracks -> {path}")
+    if built.not_on_this_mac:
+        print(f"{len(built.not_on_this_mac)} listed but not on this Mac yet (Syncthing still copying?): "
+              + ", ".join(built.not_on_this_mac[:10]))
+    if built.no_file:
+        print(f"{len(built.no_file)} left out, no file in the library: " + ", ".join(built.no_file[:10]))
+
+
+def _backup_run(client, runner: str) -> None:
+    import datetime as dt
+
+    from . import backup
+
+    out = _backup_dir()
+    status: dict = {"started": dt.datetime.now().astimezone().isoformat(), "runner": runner, "files": []}
+    failed = False
+    try:
+        path, counts = backup.write_snapshot(client, out, runner)
+        status["files"].append(str(path))
+        status["rows"] = counts
+        print(f"snapshot: {path} ({sum(counts.values())} rows)")
+    except Exception as e:
+        failed = True
+        status["snapshot_error"] = str(e)
+        logging.exception("snapshot failed")
+    db_url = backup.stored_db_url()
+    if db_url:
+        try:
+            path = backup.write_pgdump(db_url, out, runner)
+            status["files"].append(str(path))
+            print(f"pg_dump: {path}")
+        except Exception as e:
+            failed = True
+            status["pgdump_error"] = str(e)
+            logging.error("pg_dump failed: %s", e)
+    removed = backup.rotate(out)
+    if removed:
+        print(f"pruned {len(removed)} old backups")
+    status["ok"] = not failed
+    status["finished"] = dt.datetime.now().astimezone().isoformat()
+    backup.write_status(out, status)
+    if failed:
+        sys.exit(1)
+
+
+def _backup_offline(args) -> None:
+    import getpass
+    import shutil
+
+    from . import backup, schedule
+
+    if args.action == "schedule":
+        hour, _, minute = args.at.partition(":")
+        env_file = args.env_file.expanduser().resolve()
+        if not env_file.exists():
+            sys.exit(f"settings file not found: {env_file}")
+        uv = shutil.which("uv") or sys.exit("uv not found on PATH")
+        worker_dir = Path(__file__).resolve().parents[2]
+        log = Path.home() / "Library" / "Logs" / "musica-backup.log"
+        target = schedule.install(schedule.make_plist(worker_dir, env_file, uv, int(hour), int(minute or 0), log))
+        print(f"Nightly backup at {int(hour):02d}:{int(minute or 0):02d} ({target}). Log: {log}")
+    elif args.action == "unschedule":
+        print("Nightly backup stopped." if schedule.uninstall() else "No nightly backup was scheduled.")
+    elif args.action == "set-db-url":
+        url = getpass.getpass("Database URL (Supabase > Connect > Session pooler; input hidden): ").strip()
+        backup.pg_dump_command("pg_dump", url)   # validates the shape
+        backup.store_db_url(url)
+        print("Stored in the Keychain. Backups on this Mac now include a pg_dump.")
+    elif args.action == "forget-db-url":
+        import keyring
+
+        try:
+            keyring.delete_password(backup.KEYCHAIN_SERVICE, backup.DB_URL_ACCOUNT)
+        except keyring.errors.PasswordDeleteError:
+            pass
+        print("Removed.")
+    elif args.action == "verify":
+        counts = backup.verify_snapshot(args.file.expanduser())
+        for table, n in counts.items():
+            print(f"{table:18} {n}")
+        print("complete")
+    elif args.action == "to-sql":
+        for chunk in backup.snapshot_to_sql(args.file.expanduser()):
+            sys.stdout.write(chunk)
 
 
 if __name__ == "__main__":

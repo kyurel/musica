@@ -14,7 +14,8 @@ Current milestone: **1a, Library v1 basics.**
 | `supabase/migrations/` | Database schema, row-level security, job queue (SQL, in order) |
 | `supabase/tests/` | SQL tests for the migrations |
 | `worker/` | Python analysis worker that runs on the Macs (`musica-worker add` puts files in the library) |
-| `apps/web/` | Next.js web app: login, library, player, System status |
+| `apps/web/` | Next.js web app: login, library, player, M3U8 export, System status |
+| `testdata/golden/` | Expected output files shared by the worker and web tests |
 
 ## Database
 
@@ -48,6 +49,9 @@ uv sync
 uv run pytest
 uv run musica-worker --help
 ```
+
+It also exports playlists (`musica-worker export m3u8`) and makes the nightly backups
+(`musica-worker backup schedule`); see `worker/README.md` and `docs/BACKUP.md`.
 
 The worker signs in as a normal allowlisted user (never the `service_role` key). Its
 refresh token lives in the macOS Keychain; see `worker/README.md`.
