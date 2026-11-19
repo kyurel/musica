@@ -140,3 +140,15 @@ test('a genre suggestion is flagged for review', async () => {
   assert.equal(t.slug, 'psytrance');
   assert.equal(t.needs_review, true);
 });
+
+test('subgenres sit under a top-level genre with sane BPM ranges', async () => {
+  const db = await freshDb();
+  const { rows } = await db.query(`
+    select s.slug, s.bpm_min, s.bpm_max, p.parent_id as grandparent
+      from public.genres s join public.genres p on p.id = s.parent_id`);
+  assert.ok(rows.length >= 30);
+  for (const r of rows) {
+    assert.equal(r.grandparent, null, `${r.slug} must sit under a top-level genre`);
+    if (r.bpm_min != null) assert.ok(Number(r.bpm_min) <= Number(r.bpm_max), r.slug);
+  }
+});

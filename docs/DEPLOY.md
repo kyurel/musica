@@ -100,7 +100,7 @@ set -a; source ../.env; set +a
 uv run musica-worker login
 uv run musica-worker backup schedule
 uv run musica-worker backup set-db-url   # Andre's Mac only
-uv run musica-worker run
+uv run musica-worker service install     # worker runs from login
 ```
 
 ## Check it works

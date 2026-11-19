@@ -18,6 +18,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <nav className="mx-auto flex max-w-6xl items-center gap-6 px-4 py-3 text-sm">
               <Link href="/" className="font-semibold">Musica</Link>
               <Link href="/" className="text-muted-foreground hover:text-foreground">Library</Link>
+              <Link href="/crates" className="text-muted-foreground hover:text-foreground">Crates</Link>
               <Link href="/system" className="text-muted-foreground hover:text-foreground">System status</Link>
               <span className="ml-auto text-muted-foreground">{login}</span>
               <form action="/auth/signout" method="post">

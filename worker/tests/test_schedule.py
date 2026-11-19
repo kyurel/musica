@@ -19,3 +19,12 @@ def test_paths_with_spaces_are_quoted():
     raw = make_plist(Path("/Users/a b/musica/worker"), Path("/Users/a b/musica/.env"), "uv", 2, 0, Path("/tmp/l"))
     script = plistlib.loads(raw)["ProgramArguments"][2]
     assert "source '/Users/a b/musica/.env'" in script and "cd '/Users/a b/musica/worker'" in script
+
+
+def test_worker_agent_starts_at_login_and_restarts_on_crash():
+    from musica_worker.schedule import WORKER_LABEL, make_worker_plist
+
+    p = plistlib.loads(make_worker_plist(Path("/w"), Path("/e/.env"), "uv", Path("/tmp/l")))
+    assert p["Label"] == WORKER_LABEL
+    assert p["RunAtLoad"] is True and p["KeepAlive"] == {"SuccessfulExit": False}
+    assert p["ProgramArguments"][2].endswith("exec uv run musica-worker run")

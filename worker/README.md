@@ -24,6 +24,16 @@ uv run musica-worker login   # GitHub sign-in in the browser; token goes to the 
 uv run musica-worker run
 ```
 
+To keep the worker running without a Terminal window, start it at login instead
+(restarted automatically if it crashes; log in `~/Library/Logs/musica-worker.log`):
+
+```sh
+uv run musica-worker service install     # uninstall to stop
+```
+
+Its queue checks (at least every two minutes) also stop the free Supabase project from
+pausing after a week without activity.
+
 In the Supabase dashboard, add `http://127.0.0.1:54329/callback` to
 Authentication → URL Configuration → Redirect URLs, so the login callback is allowed.
 

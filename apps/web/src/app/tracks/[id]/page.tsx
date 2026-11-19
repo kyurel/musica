@@ -8,6 +8,7 @@ import { PlayButton, PlayerProvider } from "@/components/player";
 import { ALL_KEYS, notation } from "@/lib/keys";
 import { SOURCES } from "@/lib/track-edit";
 import { createClient } from "@/lib/supabase/server";
+import { addToCrate } from "../../crates/actions";
 import { confirmGenreAction, doubleBpm, halveBpm, markReviewed, saveTrack } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -41,6 +42,11 @@ export default async function TrackPage({
       .order("at", { ascending: false }).limit(20),
     db.from("allowed_users").select("user_id, github_login"),
   ]);
+  const [{ data: crates }, { data: inCrates }] = await Promise.all([
+    db.from("crates").select("id, name").is("deleted_at", null).order("name"),
+    db.from("crate_tracks").select("crate_id").eq("track_id", id),
+  ]);
+  const member_of = new Set((inCrates ?? []).map((r) => r.crate_id));
   if (!t) notFound();
 
   const versions = ((t.versions ?? []) as Version[]).filter((v) => !v.deleted_at)
@@ -150,6 +156,23 @@ export default async function TrackPage({
         <span />
         <div><Button type="submit">Save</Button></div>
       </form>
+
+      <section className="space-y-2">
+        <h2 className="font-medium">Crates</h2>
+        <div className="flex flex-wrap items-center gap-2 text-sm">
+          {(crates ?? []).filter((c) => member_of.has(c.id)).map((c) => (
+            <Link key={c.id} href={`/crates/${c.id}`}><Badge>{c.name}</Badge></Link>
+          ))}
+          {(crates ?? []).some((c) => !member_of.has(c.id)) ? (
+            <form action={addToCrate.bind(null, id)} className="flex items-center gap-2">
+              <Select name="crate_id" aria-label="Crate">
+                {(crates ?? []).filter((c) => !member_of.has(c.id)).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </Select>
+              <Button size="sm" variant="outline" type="submit">Add to crate</Button>
+            </form>
+          ) : (crates ?? []).length === 0 && <Link href="/crates" className="text-muted-foreground hover:text-foreground">Create a crate</Link>}
+        </div>
+      </section>
 
       <section className="space-y-2">
         <h2 className="font-medium">Files</h2>
