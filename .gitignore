@@ -1,0 +1,32 @@
+# secrets
+.env
+.env.*
+!.env.example
+
+# python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+*.egg-info/
+
+# node
+node_modules/
+.next/
+out/
+
+# supabase local
+supabase/.branches/
+supabase/.temp/
+
+# audio and local data never go in git
+*.wav
+*.aiff
+*.aif
+*.flac
+*.mp3
+*.m4a
+*.als
+backups/
+
+.DS_Store
