@@ -56,6 +56,10 @@ It also exports playlists (`musica-worker export m3u8`) and makes the nightly ba
 The worker signs in as a normal allowlisted user (never the `service_role` key). Its
 refresh token lives in the macOS Keychain; see `worker/README.md`.
 
+## Going live
+
+Supabase, R2 and Cloudflare setup, step by step: [docs/DEPLOY.md](docs/DEPLOY.md).
+
 ## Secrets
 
 Copy `.env.example` to `.env` and fill it in. `.env` is never committed.

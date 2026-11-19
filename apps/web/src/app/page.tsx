@@ -104,7 +104,7 @@ export default async function LibraryPage({
                 })()}
               </TableCell>
               <TableCell className="font-medium">
-                {t.title}
+                <Link href={`/tracks/${t.id}`} className="hover:underline">{t.title}</Link>
                 {t.needs_review && <Badge className="ml-2">review</Badge>}
               </TableCell>
               <TableCell>{t.artist}</TableCell>

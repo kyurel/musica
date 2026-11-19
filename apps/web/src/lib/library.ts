@@ -111,6 +111,16 @@ export async function exportTracks(db: SupabaseClient, f: Filters, limit = 50_00
   return out;
 }
 
+/** Every track in a crate, in crate order. */
+export async function exportCrate(db: SupabaseClient, crateId: string) {
+  const { data, error } = await db.from("crate_tracks")
+    .select("track:tracks(id, title, artist, deleted_at, versions(path_hint, duration_s, created_at, deleted_at))")
+    .eq("crate_id", crateId).order("position").order("added_at").limit(10_000);
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((r) => r.track as unknown as ExportRow & { deleted_at: string | null })
+    .filter((t) => t && !t.deleted_at);
+}
+
 /** The newest live version that has a file on the Macs. */
 export function newestFile(t: ExportRow) {
   return [...(t.versions ?? [])]

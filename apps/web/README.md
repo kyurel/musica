@@ -33,3 +33,14 @@ npm run typecheck
   allowing GET from the Musica host (needed for level-matched playback).
 - Hosting on Cloudflare Pages uses the OpenNext Cloudflare adapter; that setup comes with
   the deploy step.
+
+## Deploy
+
+Runs on Cloudflare Workers through the OpenNext adapter (free plan), behind Cloudflare
+Access on musica.brayuro.com. Cloudflare now recommends Workers over Pages for Next.js;
+cost and Access work the same. Full steps: [docs/DEPLOY.md](../../docs/DEPLOY.md).
+
+```sh
+npm run cf:preview   # production build, served locally by workerd
+npm run cf:deploy    # build and deploy
+```

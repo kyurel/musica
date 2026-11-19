@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { exportTracks, filterName, newestFile, parseFilters } from "@/lib/library";
+import { exportCrate, exportTracks, filterName, newestFile, parseFilters } from "@/lib/library";
 import { joinRoot, renderM3u8, safeFilename } from "@/lib/m3u8";
 
 // M3U8 of everything the library page shows for the same filters (all pages, not just
@@ -19,7 +19,9 @@ export async function GET(req: Request) {
   const f = parseFilters(sp);
   const name = (sp.name ?? "").trim().slice(0, 200) || filterName(f);
 
-  const tracks = await exportTracks(db, f);
+  const crate = sp.crate ?? "";
+  if (crate && !/^[0-9a-f-]{36}$/i.test(crate)) return NextResponse.json({ error: "bad crate" }, { status: 400 });
+  const tracks = crate ? await exportCrate(db, crate) : await exportTracks(db, f);
   const entries = tracks.flatMap((t) => {
     const v = newestFile(t);
     return v?.path_hint

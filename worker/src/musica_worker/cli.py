@@ -45,6 +45,12 @@ def main(argv: list[str] | None = None) -> None:
     exp.add_argument("--name", help="playlist name (default: from the crate or filters)")
     exp.add_argument("--out", type=Path, help="folder (default: MUSICA_EXPORT_DIR)")
 
+    svc = sub.add_parser("service", help="start the worker at login on this Mac (launchd)")
+    svc_sub = svc.add_subparsers(dest="action", required=True)
+    svc_on = svc_sub.add_parser("install", help="run the worker from login, restart it if it crashes")
+    svc_on.add_argument("--env-file", type=Path, default=Path("../.env"), help="settings file (default ../.env)")
+    svc_sub.add_parser("uninstall", help="stop starting the worker at login")
+
     bk = sub.add_parser("backup", help="back up the library database to this Mac")
     bk_sub = bk.add_subparsers(dest="action", required=True)
     bk_sub.add_parser("run", help="make a backup now and prune old ones")
@@ -74,6 +80,9 @@ def main(argv: list[str] | None = None) -> None:
             print(json.dumps({"analyser": r.analyser, "source": r.source, "values": r.values}, default=str))
         return
 
+    if args.cmd == "service":
+        _service(args)
+        return
     if args.cmd == "backup" and args.action != "run":
         _backup_offline(args)
         return
@@ -196,19 +205,37 @@ def _backup_run(client, runner: str) -> None:
         sys.exit(1)
 
 
+def _launchd_inputs(env_file: Path) -> tuple[Path, Path, str]:
+    import shutil
+
+    env_file = env_file.expanduser().resolve()
+    if not env_file.exists():
+        sys.exit(f"settings file not found: {env_file}")
+    uv = shutil.which("uv") or sys.exit("uv not found on PATH")
+    return Path(__file__).resolve().parents[2], env_file, uv
+
+
+def _service(args) -> None:
+    from . import schedule
+
+    if args.action == "install":
+        worker_dir, env_file, uv = _launchd_inputs(args.env_file)
+        log = Path.home() / "Library" / "Logs" / "musica-worker.log"
+        target = schedule.install(schedule.make_worker_plist(worker_dir, env_file, uv, log), schedule.WORKER_LABEL)
+        print(f"The worker now starts at login and is running ({target}). Log: {log}")
+    else:
+        stopped = schedule.uninstall(schedule.WORKER_LABEL)
+        print("Worker stopped and no longer starts at login." if stopped else "The worker was not installed.")
+
+
 def _backup_offline(args) -> None:
     import getpass
-    import shutil
 
     from . import backup, schedule
 
     if args.action == "schedule":
         hour, _, minute = args.at.partition(":")
-        env_file = args.env_file.expanduser().resolve()
-        if not env_file.exists():
-            sys.exit(f"settings file not found: {env_file}")
-        uv = shutil.which("uv") or sys.exit("uv not found on PATH")
-        worker_dir = Path(__file__).resolve().parents[2]
+        worker_dir, env_file, uv = _launchd_inputs(args.env_file)
         log = Path.home() / "Library" / "Logs" / "musica-backup.log"
         target = schedule.install(schedule.make_plist(worker_dir, env_file, uv, int(hour), int(minute or 0), log))
         print(f"Nightly backup at {int(hour):02d}:{int(minute or 0):02d} ({target}). Log: {log}")
