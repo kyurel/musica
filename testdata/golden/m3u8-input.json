@@ -1,0 +1,10 @@
+{
+  "name": "Hard groove 140-150\nwarm-up",
+  "entries": [
+    {"path": "/Users/andre/Music/Musica/Inbox/Rødhåd - Anxious.flac", "title": "Anxious", "artist": "Rødhåd", "duration_s": 412.5},
+    {"path": "/Users/andre/Music/Musica/Ours/wip 03.wav", "title": "wip 03", "artist": null, "duration_s": null},
+    {"path": "/Users/andre/Music/Musica/x.mp3", "title": "Evil\r\n/etc/passwd", "artist": "  DJ\u0000Bad ", "duration_s": 299.49},
+    {"path": "/Users/andre/Music/Musica/bad\nname.mp3", "title": "Skipped", "artist": "Nobody", "duration_s": 100},
+    {"path": "#hash/start.aiff", "title": "Relative", "artist": "Somebody", "duration_s": 60.0}
+  ]
+}
