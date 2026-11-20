@@ -10,6 +10,6 @@
   "assets": { "directory": ".open-next/assets", "binding": "ASSETS" },
   "workers_dev": false,
   "preview_urls": false,
-  "routes": [{ "pattern": "musica.brayuro.com", "custom_domain": true }],
+  "routes": [{ "pattern": "musica.brakyuro.com", "custom_domain": true }],
   "observability": { "enabled": true }
 }

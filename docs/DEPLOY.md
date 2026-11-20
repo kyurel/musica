@@ -2,7 +2,7 @@
 
 Everything here stays on free plans. It takes about 30 to 45 minutes, on Andre's Mac,
 signed in to GitHub, Supabase and Cloudflare. The app ends up at
-**https://musica.brayuro.com** (change `routes` in `apps/web/wrangler.jsonc` for another
+**https://musica.brakyuro.com** (change `routes` in `apps/web/wrangler.jsonc` for another
 name).
 
 There are two locks. Cloudflare Access only lets the two GitHub accounts reach the site.
@@ -26,11 +26,11 @@ Needs: Node 22, `uv`, the Supabase CLI (`brew install supabase/tap/supabase`).
    insert into public.allowed_users (github_id, github_login) values (<id>, '<andre>'), (<id>, '<friend>');
    ```
 4. GitHub → Settings → Developer settings → OAuth Apps → New:
-   homepage `https://musica.brayuro.com`, callback `https://<ref>.supabase.co/auth/v1/callback`.
+   homepage `https://musica.brakyuro.com`, callback `https://<ref>.supabase.co/auth/v1/callback`.
    Copy the client id and a new client secret.
 5. Supabase → Authentication → Sign In / Providers → GitHub: on, paste id and secret.
-6. Authentication → URL Configuration: Site URL `https://musica.brayuro.com`; Redirect URLs
-   `https://musica.brayuro.com/auth/callback`, `http://localhost:3000/auth/callback`,
+6. Authentication → URL Configuration: Site URL `https://musica.brakyuro.com`; Redirect URLs
+   `https://musica.brakyuro.com/auth/callback`, `http://localhost:3000/auth/callback`,
    `http://127.0.0.1:54329/callback` (worker login).
 7. Keep "Allow new users to sign up" **on** until both of you have signed in once (the
    first GitHub sign-in creates the account; the allowlist trigger still rejects
@@ -43,7 +43,7 @@ Needs: Node 22, `uv`, the Supabase CLI (`brew install supabase/tap/supabase`).
 1. Cloudflare dashboard → R2 → Create bucket `musica-previews` (location: Europe).
 2. Bucket → Settings → CORS policy, so the player can level-match previews:
    ```json
-   [{ "AllowedOrigins": ["https://musica.brayuro.com", "http://localhost:3000"],
+   [{ "AllowedOrigins": ["https://musica.brakyuro.com", "http://localhost:3000"],
       "AllowedMethods": ["GET"], "AllowedHeaders": ["*"], "MaxAgeSeconds": 3600 }]
    ```
 3. R2 → Manage API tokens → Create: **Object Read & Write**, only bucket
@@ -56,7 +56,7 @@ Needs: Node 22, `uv`, the Supabase CLI (`brew install supabase/tap/supabase`).
 1. Zero Trust → Settings → Authentication → Login methods → Add → GitHub. It asks for
    a second GitHub OAuth app; its callback is
    `https://<your-team>.cloudflareaccess.com/cdn-cgi/access/callback`.
-2. Access → Applications → Add → Self-hosted: name Musica, domain `musica.brayuro.com`,
+2. Access → Applications → Add → Self-hosted: name Musica, domain `musica.brakyuro.com`,
    login method GitHub only. Policy "Members": Allow, Emails = the two GitHub emails.
 3. Access → Service Auth → Service Tokens → Create `musica-worker`. Copy the client id
    and secret. Add a second policy to the Musica application: action **Service Auth**,
@@ -82,7 +82,7 @@ npm run cf:deploy
 
 The first `secret put` creates the Worker if needed; if it complains, run
 `npm run cf:deploy` once first and then add the secrets. The deploy adds the
-`musica.brayuro.com` DNS record itself. The `*.workers.dev` address is off, so the app is
+`musica.brakyuro.com` DNS record itself. The `*.workers.dev` address is off, so the app is
 only reachable through Access.
 
 Later deploys: `npm run cf:deploy` again. `npm run cf:preview` runs the production build
@@ -105,7 +105,7 @@ uv run musica-worker service install     # worker runs from login
 
 ## Check it works
 
-- Open https://musica.brayuro.com in a private window: Cloudflare asks for GitHub, then
+- Open https://musica.brakyuro.com in a private window: Cloudflare asks for GitHub, then
   the app asks for GitHub again, then the library shows.
 - A third GitHub account is stopped at the Cloudflare step.
 - `musica-worker add` a file: System status shows the jobs, and the preview plays.

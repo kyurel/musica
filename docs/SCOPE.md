@@ -61,7 +61,7 @@ auto-suggest (Essentia) + human confirm.
 ## Stack and hosting
 
 - **Web:** Next.js + shadcn/ui (TypeScript), on Cloudflare Pages (free) under a subdomain of
-  brayuro.com, behind Cloudflare Access (GitHub as identity provider, 2 accounts).
+  brakyuro.com, behind Cloudflare Access (GitHub as identity provider, 2 accounts).
 - **Database/Auth:** Supabase free tier: Postgres + pgvector, Auth with GitHub.
 - **Worker, Rebuild, Master:** Python. Worker runs on both Macs; Docker-portable later.
 - **Storage (hybrid):**

@@ -37,7 +37,7 @@ npm run typecheck
 ## Deploy
 
 Runs on Cloudflare Workers through the OpenNext adapter (free plan), behind Cloudflare
-Access on musica.brayuro.com. Cloudflare now recommends Workers over Pages for Next.js;
+Access on musica.brakyuro.com. Cloudflare now recommends Workers over Pages for Next.js;
 cost and Access work the same. Full steps: [docs/DEPLOY.md](../../docs/DEPLOY.md).
 
 ```sh
