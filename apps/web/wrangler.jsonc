@@ -10,6 +10,12 @@
   "assets": { "directory": ".open-next/assets", "binding": "ASSETS" },
   "workers_dev": false,
   "preview_urls": false,
-  "routes": [{ "pattern": "musica.brakyuro.com", "custom_domain": true }],
+  // The second entry is a plain route on the same name: the zone's catch-all "not found" route
+  // *.brakyuro.com/* would otherwise answer musica too (a route beats a custom domain), and the
+  // more specific route wins. Access still runs first.
+  "routes": [
+    { "pattern": "musica.brakyuro.com", "custom_domain": true },
+    { "pattern": "musica.brakyuro.com/*", "zone_name": "brakyuro.com" }
+  ],
   "observability": { "enabled": true }
 }
