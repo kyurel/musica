@@ -84,6 +84,8 @@ jobs:
     steps:
       - name: Check deploy settings
         id: ready
+        # Runs before checkout, so apps/web doesn't exist yet.
+        working-directory: .
         run: |
           if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
             echo "::warning::Automatic deploy is not set up yet: add CLOUDFLARE_API_TOKEN (see docs/DEPLOY.md). Skipping."
