@@ -1,135 +1,85 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input, Select } from "@/components/ui/input";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { NotMember } from "@/components/not-member";
-import { ALL_KEYS, notation } from "@/lib/keys";
-import { PAGE_SIZE, parseFilters, playable, searchTracks } from "@/lib/library";
-import { PlayButton, PlayerProvider } from "@/components/player";
-import { ExportButton } from "@/components/export-button";
+import { STATUS_LABEL, TOOLS, type Tool } from "@/lib/tools";
 import { createClient } from "@/lib/supabase/server";
+import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
-const SOURCES = ["ours", "reference", "commercial", "promo", "sample_pack"];
+// Library filters used to live on "/". Old bookmarks and links still work.
+const LIBRARY_PARAMS = ["q", "genre", "bpm_min", "bpm_max", "key", "mixable", "source", "review", "page"];
 
-export default async function LibraryPage({
+export default async function HomePage({
   searchParams,
 }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  const sp = await searchParams;
+  if (LIBRARY_PARAMS.some((k) => k in sp)) {
+    const q = new URLSearchParams(Object.entries(sp).filter(([, v]) => typeof v === "string") as [string, string][]);
+    redirect(`/library?${q}`);
+  }
+
   const supabase = await createClient();
   const { data: member } = await supabase.rpc("is_member");
   if (!member) return <NotMember />;
 
-  const sp = await searchParams;
-  const f = parseFilters(sp);
-  const [{ tracks, count }, { data: genres }] = await Promise.all([
-    searchTracks(supabase, f),
-    supabase.from("genres").select("slug, name").is("parent_id", null).order("sort"),
+  const [{ count: tracks }, { count: review }] = await Promise.all([
+    supabase.from("tracks").select("id", { count: "exact", head: true }).is("deleted_at", null),
+    supabase.from("tracks").select("id", { count: "exact", head: true }).is("deleted_at", null).eq("needs_review", true),
   ]);
-  const page = f.page ?? 1;
-  const pages = Math.max(1, Math.ceil(count / PAGE_SIZE));
-  const query = new URLSearchParams(Object.entries(sp).filter(([, v]) => typeof v === "string") as [string, string][]);
-  const pageLink = (p: number) => {
-    const q = new URLSearchParams(query);
-    q.set("page", String(p));
-    return `/?${q}`;
-  };
 
+  const [library, ...rest] = TOOLS;
   return (
-    <PlayerProvider>
-    <div className="space-y-4">
-      <div className="flex items-baseline justify-between">
-        <h1 className="text-xl font-semibold">Library</h1>
-        <div className="flex items-center gap-4">
-          <span className="text-sm text-muted-foreground">{count} tracks</span>
-          {count > 0 && <ExportButton query={query.toString()} />}
-        </div>
+    <div className="space-y-8">
+      <div className="space-y-1">
+        <h1 className="text-2xl font-semibold">Musica</h1>
+        <p className="text-muted-foreground">Our studio tools around one shared library. Pick a tool to start.</p>
       </div>
 
-      <form className="flex flex-wrap items-center gap-2" method="get">
-        <Input name="q" placeholder="Search title, artist, notes" defaultValue={f.q} className="w-64" />
-        <Select name="genre" defaultValue={f.genre ?? ""}>
-          <option value="">All genres</option>
-          {genres?.map((g) => <option key={g.slug} value={g.slug}>{g.name}</option>)}
-        </Select>
-        <Input name="bpm_min" type="number" placeholder="BPM from" defaultValue={f.bpmMin} className="w-28" />
-        <Input name="bpm_max" type="number" placeholder="BPM to" defaultValue={f.bpmMax} className="w-28" />
-        <Select name="key" defaultValue={f.key ?? ""}>
-          <option value="">Any key</option>
-          {ALL_KEYS.map((k) => <option key={k} value={k}>{k} · {notation(k)}</option>)}
-          <option value="atonal">atonal</option>
-        </Select>
-        <label className="flex items-center gap-1 text-sm">
-          <input type="checkbox" name="mixable" value="1" defaultChecked={f.mixable} /> mixable keys
-        </label>
-        <Select name="source" defaultValue={f.source ?? ""}>
-          <option value="">Any source</option>
-          {SOURCES.map((s) => <option key={s} value={s}>{s.replace("_", " ")}</option>)}
-        </Select>
-        <label className="flex items-center gap-1 text-sm">
-          <input type="checkbox" name="review" value="1" defaultChecked={f.review} /> needs review
-        </label>
-        <Button type="submit" size="sm">Filter</Button>
-        <Link href="/" className="text-sm text-muted-foreground hover:text-foreground">Clear</Link>
-      </form>
+      <ToolCard t={library} big>
+        <p className="text-sm text-muted-foreground">
+          {tracks ?? 0} tracks{review ? ` · ${review} need review` : ""}
+        </p>
+      </ToolCard>
 
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-10" />
-            <TableHead>Title</TableHead>
-            <TableHead>Artist</TableHead>
-            <TableHead>Genre</TableHead>
-            <TableHead className="text-right">BPM</TableHead>
-            <TableHead>Key</TableHead>
-            <TableHead>Rating</TableHead>
-            <TableHead>Labels</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {tracks.length === 0 && (
-            <TableRow>
-              <TableCell colSpan={8} className="py-10 text-center text-muted-foreground">
-                No tracks match. Add files on a Mac with <code>musica-worker add</code>.
-              </TableCell>
-            </TableRow>
-          )}
-          {tracks.map((t) => (
-            <TableRow key={t.id}>
-              <TableCell>
-                {(() => {
-                  const v = playable(t);
-                  return v ? <PlayButton versionId={v.id} title={t.title} lufs={v.preview_lufs} /> : null;
-                })()}
-              </TableCell>
-              <TableCell className="font-medium">
-                <Link href={`/tracks/${t.id}`} className="hover:underline">{t.title}</Link>
-                {t.needs_review && <Badge className="ml-2">review</Badge>}
-              </TableCell>
-              <TableCell>{t.artist}</TableCell>
-              <TableCell>{t.genre?.name}</TableCell>
-              <TableCell className="text-right tabular-nums" title={t.bpm_source ?? undefined}>
-                {t.bpm != null ? Number(t.bpm).toFixed(1) : ""}
-              </TableCell>
-              <TableCell title={notation(t.musical_key)}>
-                {t.musical_key && <>{t.musical_key} <span className="text-muted-foreground">{notation(t.musical_key)}</span></>}
-              </TableCell>
-              <TableCell>{t.rating ? "★".repeat(t.rating) : ""}</TableCell>
-              <TableCell className="space-x-1">{t.labels.map((l) => <Badge key={l}>{l}</Badge>)}</TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+      <div className="grid gap-4 sm:grid-cols-2">
+        {rest.map((t) => <ToolCard key={t.slug} t={t} />)}
+      </div>
 
-      {pages > 1 && (
-        <div className="flex items-center gap-3 text-sm">
-          {page > 1 && <Link href={pageLink(page - 1)}>Previous</Link>}
-          <span className="text-muted-foreground">Page {page} of {pages}</span>
-          {page < pages && <Link href={pageLink(page + 1)}>Next</Link>}
+      <p className="text-sm text-muted-foreground">
+        Worker and storage health is on <Link href="/system" className="underline hover:text-foreground">System status</Link>.
+      </p>
+    </div>
+  );
+}
+
+function ToolCard({ t, big, children }: { t: Tool; big?: boolean; children?: React.ReactNode }) {
+  const live = t.status === "live";
+  return (
+    <div
+      className={cn(
+        "relative rounded-lg border p-5 transition-colors hover:bg-muted/50",
+        !live && "border-dashed",
+        big && "p-6",
+      )}
+    >
+      <div className="mb-2 flex items-center gap-2">
+        <h2 className={cn("font-semibold", big ? "text-xl" : "text-lg")}>
+          {/* The title link covers the whole card; sub-links sit above it. */}
+          <Link href={t.href} className="after:absolute after:inset-0">{t.name}</Link>
+        </h2>
+        <Badge className={cn(live ? "border-foreground/30" : "text-muted-foreground")}>{STATUS_LABEL[t.status]}</Badge>
+        {!live && <span className="text-xs text-muted-foreground">{t.milestone}</span>}
+      </div>
+      <p className={cn("text-sm", live ? "text-foreground" : "text-muted-foreground")}>{t.tagline}</p>
+      {children && <div className="mt-3">{children}</div>}
+      {t.links && (
+        <div className="relative mt-3 flex gap-4 text-sm">
+          <Link href={t.href} className="underline">Open {t.name}</Link>
+          {t.links.map((l) => <Link key={l.href} href={l.href} className="underline">{l.label}</Link>)}
         </div>
       )}
     </div>
-    </PlayerProvider>
   );
 }
