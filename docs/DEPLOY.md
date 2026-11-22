@@ -85,8 +85,22 @@ The first `secret put` creates the Worker if needed; if it complains, run
 `musica.brakyuro.com` DNS record itself. The `*.workers.dev` address is off, so the app is
 only reachable through Access.
 
-Later deploys: `npm run cf:deploy` again. `npm run cf:preview` runs the production build
-locally.
+Later deploys happen by themselves: every merge to `main` runs the tests on GitHub and,
+when they pass, the `deploy` job in `.github/workflows/tests.yml` runs `npm run cf:deploy`.
+It needs these once, in GitHub → the repo → Settings → Secrets and variables → Actions:
+
+| Kind | Name | Value |
+| --- | --- | --- |
+| Secret | `CLOUDFLARE_API_TOKEN` | Cloudflare → My Profile → API Tokens → Create Token → template **Edit Cloudflare Workers**, account = yours, zone = `brakyuro.com` |
+| Secret | `CLOUDFLARE_ACCOUNT_ID` | Cloudflare dashboard → Workers & Pages → Account ID (right side) |
+| Variable | `NEXT_PUBLIC_SUPABASE_URL` | same as in `.env.production.local` |
+| Variable | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | same as in `.env.production.local` |
+
+Until the token is there the job just warns and skips. To see a deploy, open the repo's
+Actions tab: the `tests` run for the merge has a `deploy` job.
+
+A manual deploy from a Mac still works: `npm run cf:deploy`. `npm run cf:preview` runs the
+production build locally.
 
 ## 5. Each Mac
 
