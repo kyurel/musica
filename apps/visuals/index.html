@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Musica Visuals · Signals</title>
+    <link rel="stylesheet" href="/src/debug/style.css" />
+  </head>
+  <body>
+    <header>
+      <h1>Musica Visuals <span>signals</span></h1>
+      <div class="controls">
+        <label>Audio in <select id="audio-device"><option value="">Default input</option></select></label>
+        <button id="audio-start">Start audio</button>
+        <label>Camera <select id="camera-device"><option value="">Default camera</option></select></label>
+        <label>Model
+          <select id="pose-model"><option value="lite">Lite (fast)</option><option value="full">Full (accurate)</option></select>
+        </label>
+        <button id="camera-start">Start camera</button>
+        <span id="fps" class="muted"></span>
+      </div>
+    </header>
+    <main>
+      <section class="panel camera">
+        <h2>Body <span id="body-status" class="muted">camera off</span></h2>
+        <canvas id="camera-view" width="1280" height="720"></canvas>
+      </section>
+      <section class="panel audio">
+        <h2>Music <span id="audio-status" class="muted">audio off</span></h2>
+        <div class="big">
+          <div id="beat-lamp" class="lamp">BEAT</div>
+          <div><div id="bpm" class="bpm">--</div><div class="muted">BPM <span id="bpm-conf"></span></div></div>
+          <div id="drop-lamp" class="lamp drop">DROP</div>
+        </div>
+        <div id="meters"></div>
+      </section>
+      <section class="panel midi">
+        <h2>Controllers <span id="midi-status" class="muted"></span></h2>
+        <p class="muted small">Move a knob or hit a pad: its signal name appears here and in the list.</p>
+        <ol id="midi-log"></ol>
+      </section>
+      <section class="panel signals">
+        <h2>All signals <span class="muted small">bars = values, flashes = triggers</span></h2>
+        <table id="signal-table"><tbody></tbody></table>
+      </section>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
