@@ -15,6 +15,7 @@ Current milestone: **1a, Library v1 basics.**
 | `supabase/tests/` | SQL tests for the migrations |
 | `worker/` | Python analysis worker that runs on the Macs (`musica-worker add` puts files in the library) |
 | `apps/web/` | Next.js web app: login, library, player, M3U8 export, System status |
+| `apps/visuals/` | Live visuals for DJ sets, reacting to the music and the DJ's body (separate from the library; see its README) |
 | `testdata/golden/` | Expected output files shared by the worker and web tests |
 
 ## Database

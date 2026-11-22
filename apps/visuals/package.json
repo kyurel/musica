@@ -1,0 +1,25 @@
+{
+  "name": "musica-visuals",
+  "version": "0.1.0",
+  "private": true,
+  "license": "GPL-3.0-or-later",
+  "type": "module",
+  "scripts": {
+    "setup": "node scripts/setup-assets.mjs",
+    "predev": "node scripts/setup-assets.mjs",
+    "dev": "vite",
+    "prebuild": "node scripts/setup-assets.mjs",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@mediapipe/tasks-vision": "0.10.35"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3",
+    "vite": "8.3.8",
+    "vitest": "4.1.12"
+  }
+}

@@ -65,6 +65,20 @@ jobs:
       - run: npm test
       - run: npm run cf:build
 
+  visuals:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    defaults: { run: { working-directory: apps/visuals } }
+    env:
+      SKIP_MODEL_DOWNLOAD: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm, cache-dependency-path: apps/visuals/package-lock.json }
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+
   # Publishes the web app after a merge to main. Needs, in the repo's Settings:
   #   Secrets:   CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID
   #   Variables: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY
