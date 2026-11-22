@@ -12,7 +12,7 @@ export default async function SystemPage() {
   const { data: member } = await supabase.rpc("is_member");
   if (!member) return <NotMember />;
 
-  const [{ data: runners }, { data: jobs }] = await Promise.all([
+  const [{ data: runners, error: runnersError }, { data: jobs, error: jobsError }] = await Promise.all([
     supabase.from("runners").select("name, capabilities, last_heartbeat").order("name"),
     supabase.from("jobs").select("id, kind, status, attempts, claimed_by, error, created_at, capabilities")
       .in("status", ["queued", "running", "failed"]).order("created_at", { ascending: false }).limit(100),
@@ -25,6 +25,12 @@ export default async function SystemPage() {
   return (
     <div className="space-y-8">
       <h1 className="text-xl font-semibold">System status</h1>
+
+      {(runnersError || jobsError) && (
+        <p className="rounded-md border border-destructive p-3 text-sm text-destructive">
+          Couldn&apos;t load status: {(runnersError ?? jobsError)?.message}
+        </p>
+      )}
 
       {online.length === 0 && queued.length > 0 && (
         <p className="rounded-md border p-3 text-sm">
@@ -39,6 +45,14 @@ export default async function SystemPage() {
             <TableRow><TableHead>Name</TableHead><TableHead>Status</TableHead><TableHead>Can do</TableHead><TableHead>Last seen</TableHead></TableRow>
           </TableHeader>
           <TableBody>
+            {(runners ?? []).length === 0 && (
+              <TableRow>
+                <TableCell colSpan={4} className="py-6 text-center text-muted-foreground">
+                  No Mac has connected yet. Set up the worker on a Mac (<code>musica-worker login</code>, then{" "}
+                  <code>musica-worker service install</code>, see docs/DEPLOY.md) and it shows up here.
+                </TableCell>
+              </TableRow>
+            )}
             {(runners ?? []).map((r) => {
               const up = online.includes(r);
               return (
